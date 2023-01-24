@@ -15,4 +15,4 @@ yarn dev
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ## Image of the game
-![The finished product](https://github.com/newmat123/MyFreedeck/blob/main/product.jpg?raw=true)
+![The finished product](https://github.com/newmat123/Nextjs-Tic-tac-toe/blob/main/public/GameImage.png?raw=true)
