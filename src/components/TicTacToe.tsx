@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+
 const huPlayer = 'X';
 const aiPlayer = 'O';
 const winCombos = [
@@ -12,14 +13,14 @@ const winCombos = [
     [6, 4, 2]
 ];
 
-function evaluateBoard(board: (boolean | null)[], depth: number){
+function evaluateBoard(board: (boolean | null)[], depth: number) {
     let result: (number | null) = null;
 
     for (let i = 0; i < winCombos.length; i++) {
         if (board[winCombos[i][0]] == board[winCombos[i][1]] && board[winCombos[i][1]] == board[winCombos[i][2]]) {
-            if (board[winCombos[i][0]] == true){
+            if (board[winCombos[i][0]] == true) {
                 result = -10 + depth;
-            }else if(board[winCombos[i][0]] == false){
+            } else if (board[winCombos[i][0]] == false) {
                 result = 10 - depth;
             }
         }
@@ -34,21 +35,21 @@ function evaluateBoard(board: (boolean | null)[], depth: number){
     return result;
 }
 
-function minimax(board: (boolean | null)[], depth: number, isMax: boolean){
-    
+function minimax(board: (boolean | null)[], depth: number, isMax: boolean) {
+
     var score = evaluateBoard(board, depth);
-    if (score != null){
+    if (score != null) {
         return score;
     }
 
     if (isMax) {
         var bestVal = -1000;
         for (var i = 0; i < board.length; i++) {
-            if(board[i] == null){
+            if (board[i] == null) {
                 board[i] = false;
-                var value = minimax(board, depth+1, !isMax);
-                
-                if (value > bestVal){
+                var value = minimax(board, depth + 1, !isMax);
+
+                if (value > bestVal) {
                     bestVal = value;
                 }
                 board[i] = null;
@@ -58,11 +59,11 @@ function minimax(board: (boolean | null)[], depth: number, isMax: boolean){
     } else {
         var bestVal = 1000;
         for (var i = 0; i < board.length; i++) {
-            if(board[i] == null){
+            if (board[i] == null) {
                 board[i] = true;
-                var value = minimax(board, depth+1, !isMax);
-                
-                if (value < bestVal){
+                var value = minimax(board, depth + 1, !isMax);
+
+                if (value < bestVal) {
                     bestVal = value;
                 }
                 board[i] = null;
@@ -72,19 +73,18 @@ function minimax(board: (boolean | null)[], depth: number, isMax: boolean){
     }
 }
 
-function getBestMove(board: (boolean | null)[]){
+function getBestMove(board: (boolean | null)[]) {
     let bestVal = -1000;
     let bestMove = 0;
 
     for (let i = 0; i < board.length; i++) {
-        if(board[i] == null){
-            
+        if (board[i] == null) {
+
             board[i] = false;
             let moveVal = minimax(board, 0, false);
             board[i] = null;
 
-            if (moveVal > bestVal)
-            {
+            if (moveVal > bestVal) {
                 bestVal = moveVal;
                 bestMove = i;
             }
@@ -100,7 +100,7 @@ export default function TicTacToe() {
     const [winner, setWinner] = useState<(boolean | null | undefined)>(null);
     const [aiOn, setAi] = useState(true);
 
-    function movesLeft(){
+    function movesLeft() {
         var result = 0;
         for (let i = 0; i < boardArr.length; i++) {
             boardArr[i] == null && result++;
@@ -108,23 +108,34 @@ export default function TicTacToe() {
         return result;
     }
 
-    function aiTurn(){
+    // Draws the move on the board and changes the player
+    function drawMove(moveIndex: number) {
+        var tempBoard = boardArr;
+        tempBoard[moveIndex] = player;
+        setBoardArr(tempBoard);
+        setPlayer(!player);
+    }
+
+    // Draws the ai's move after 250 ms
+    function aiTurn() {
         setTimeout(() => {
-            if(winner == null && player == false && movesLeft() > 0){
-                var tempBoard = boardArr;
-                tempBoard[getBestMove(boardArr)] = player;
-                setBoardArr(tempBoard);
-                setPlayer(!player);
+            if (winner == null && player == false && movesLeft() > 0) {
+                drawMove(getBestMove(boardArr));
             }
         }, 250);
     }
 
+    // Checks win or tie when the board is updated
     useEffect(() => {
         let result: (boolean | null | undefined) = null;
         for (let i = 0; i < winCombos.length; i++) {
+            // Runs through all the win combos and check if there is a win
             if (boardArr[winCombos[i][0]] == boardArr[winCombos[i][1]] && boardArr[winCombos[i][1]] == boardArr[winCombos[i][2]]) {
-                result = boardArr[winCombos[i][0]];
-                //break;
+                result = boardArr[winCombos[i][0]]; // true (player/X) or false (ai/O)
+                if (result != null) {
+                    // Break loop if winner is found
+                    break;
+                }
             }
         }
         var movesLeft = 0;
@@ -132,30 +143,36 @@ export default function TicTacToe() {
             boardArr[i] == null && movesLeft++;
         }
         if (movesLeft == 0 && result == null) {
-            result = undefined;
+            result = undefined; // tie
         }
+
+        // Update winner and call aiTurn if ai is enabled
         setWinner(result);
         aiOn && aiTurn();
     }, [JSON.stringify(boardArr)]); // Only re-run the effect if board changes
-    
+
+    // Run the ai if it is switched back on and it is the ai's turn.
+    useEffect(() => {
+        if (aiOn && !player) {
+            aiTurn();
+        }
+    }, [aiOn]);
+
     const tileClk = (tile: number) => {
-        if (boardArr[tile] == null){
-            var tempBoard = boardArr;
-            if (aiOn){
-                if(player){
-                    tempBoard[tile] = player
-                    setBoardArr(tempBoard);
-                    setPlayer(!player);
-                }
-            }else{
-                tempBoard[tile] = player;
-                setBoardArr(tempBoard);
-                setPlayer(!player);
+        // Return if the tile clicked is empty
+        if (boardArr[tile] != null) {
+            return;
+        }
+        if (aiOn) {
+            if (player) {
+                drawMove(tile);
             }
+        } else {
+            drawMove(tile);
         }
     }
 
-    const restartGame = () =>{
+    const restartGame = () => {
         var newBoard: (boolean | null)[] = [null, null, null, null, null, null, null, null, null];
         setBoardArr(newBoard);
         setWinner(null);
@@ -165,55 +182,55 @@ export default function TicTacToe() {
     return (
         <div className="relative flex flex-col w-fit justify-center bg-slate-800 bg-opacity-20 rounded-md shadow-lg text-center">
             <div className="grid grid-cols-3 hover:cursor-pointer m-5">
-                <div onClick={(e)=>tileClk(0)} className="cell p-1 w-20 h-20 border-r-2 border-b-2 border-black">
+                <div onClick={(e) => tileClk(0)} className="cell p-1 w-20 h-20 border-r-2 border-b-2 border-black">
                     {
                         boardArr[0] !== null &&
                         <h1 className="font-bold text-6xl">{boardArr[0] === true ? huPlayer : aiPlayer}</h1>
                     }
                 </div>
-                <div onClick={(e)=>tileClk(1)} className="cell p-1 w-20 h-20 border-r-2 border-l-2 border-b-2 border-black">
+                <div onClick={(e) => tileClk(1)} className="cell p-1 w-20 h-20 border-r-2 border-l-2 border-b-2 border-black">
                     {
                         boardArr[1] !== null &&
                         <h1 className="font-bold text-6xl">{boardArr[1] === true ? huPlayer : aiPlayer}</h1>
                     }
                 </div>
-                <div onClick={(e)=>tileClk(2)} className="cell p-1 w-20 h-20 border-l-2 border-b-2 border-black">
+                <div onClick={(e) => tileClk(2)} className="cell p-1 w-20 h-20 border-l-2 border-b-2 border-black">
                     {
                         boardArr[2] !== null &&
                         <h1 className="font-bold text-6xl">{boardArr[2] === true ? huPlayer : aiPlayer}</h1>
                     }
                 </div>
-                <div onClick={(e)=>tileClk(3)} className="cell p-1 w-20 h-20 border-r-2 border-t-2 border-b-2 border-black">
+                <div onClick={(e) => tileClk(3)} className="cell p-1 w-20 h-20 border-r-2 border-t-2 border-b-2 border-black">
                     {
                         boardArr[3] !== null &&
                         <h1 className="font-bold text-6xl">{boardArr[3] === true ? huPlayer : aiPlayer}</h1>
                     }
                 </div>
-                <div onClick={(e)=>tileClk(4)} className="cell p-1 w-20 h-20 border-2 border-black">
+                <div onClick={(e) => tileClk(4)} className="cell p-1 w-20 h-20 border-2 border-black">
                     {
                         boardArr[4] !== null &&
                         <h1 className="font-bold text-6xl">{boardArr[4] === true ? huPlayer : aiPlayer}</h1>
                     }
                 </div>
-                <div onClick={(e)=>tileClk(5)} className="cell p-1 w-20 h-20 border-l-2 border-t-2 border-b-2 border-black">
+                <div onClick={(e) => tileClk(5)} className="cell p-1 w-20 h-20 border-l-2 border-t-2 border-b-2 border-black">
                     {
                         boardArr[5] !== null &&
                         <h1 className="font-bold text-6xl">{boardArr[5] === true ? huPlayer : aiPlayer}</h1>
                     }
                 </div>
-                <div onClick={(e)=>tileClk(6)} className="cell p-1 w-20 h-20 border-r-2 border-t-2 border-black">
+                <div onClick={(e) => tileClk(6)} className="cell p-1 w-20 h-20 border-r-2 border-t-2 border-black">
                     {
                         boardArr[6] !== null &&
                         <h1 className="font-bold text-6xl">{boardArr[6] === true ? huPlayer : aiPlayer}</h1>
                     }
                 </div>
-                <div onClick={(e)=>tileClk(7)} className="cell p-1 w-20 h-20 border-r-2 border-l-2 border-t-2 border-black">
+                <div onClick={(e) => tileClk(7)} className="cell p-1 w-20 h-20 border-r-2 border-l-2 border-t-2 border-black">
                     {
                         boardArr[7] !== null &&
                         <h1 className="font-bold text-6xl">{boardArr[7] === true ? huPlayer : aiPlayer}</h1>
                     }
                 </div>
-                <div onClick={(e)=>tileClk(8)} className="cell p-1 w-20 h-20 border-l-2 border-t-2 border-black">
+                <div onClick={(e) => tileClk(8)} className="cell p-1 w-20 h-20 border-l-2 border-t-2 border-black">
                     {
                         boardArr[8] !== null &&
                         <h1 className="font-bold text-6xl">{boardArr[8] === true ? huPlayer : aiPlayer}</h1>
@@ -235,7 +252,7 @@ export default function TicTacToe() {
                         className="w-11 h-6 bg-gray-200 rounded-full peer  peer-focus:ring-green-300  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"
                     ></div>
                     <span className="ml-2 text-sm font-medium text-gray-900">
-                        { aiOn ? "AI on":"AI off"}
+                        {aiOn ? "AI on" : "AI off"}
                     </span>
                 </label>
             </div>
