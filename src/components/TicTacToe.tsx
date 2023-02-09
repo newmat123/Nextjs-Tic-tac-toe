@@ -100,14 +100,6 @@ export default function TicTacToe() {
     const [winner, setWinner] = useState<(boolean | null | undefined)>(null);
     const [aiOn, setAi] = useState(true);
 
-    function movesLeft() {
-        var result = 0;
-        for (let i = 0; i < boardArr.length; i++) {
-            boardArr[i] == null && result++;
-        }
-        return result;
-    }
-
     // Draws the move on the board and changes the player
     function drawMove(moveIndex: number) {
         var tempBoard = boardArr;
@@ -118,44 +110,46 @@ export default function TicTacToe() {
 
     // Draws the ai's move after 250 ms
     function aiTurn() {
+        if(player){ 
+            return; // if it isn't the ai's turn
+        }
+        if(!aiOn){
+            return; // return if ai is off
+        }
         setTimeout(() => {
-            if (winner == null && player == false && movesLeft() > 0) {
-                drawMove(getBestMove(boardArr));
-            }
+            drawMove(getBestMove(boardArr));
         }, 250);
     }
 
     // Checks win or tie when the board is updated
     useEffect(() => {
-        let result: (boolean | null | undefined) = null;
         for (let i = 0; i < winCombos.length; i++) {
             // Runs through all the win combos and check if there is a win
+            if(boardArr[winCombos[i][0]] == null){
+                continue; // Skip iteration
+            }
             if (boardArr[winCombos[i][0]] == boardArr[winCombos[i][1]] && boardArr[winCombos[i][1]] == boardArr[winCombos[i][2]]) {
-                result = boardArr[winCombos[i][0]]; // true (player/X) or false (ai/O)
-                if (result != null) {
-                    // Break loop if winner is found
-                    break;
-                }
+                setWinner(boardArr[winCombos[i][0]]); // true (player/X) or false (ai/O)
+                return;
             }
         }
+
         var movesLeft = 0;
         for (let i = 0; i < boardArr.length; i++) {
             boardArr[i] == null && movesLeft++;
         }
-        if (movesLeft == 0 && result == null) {
-            result = undefined; // tie
+        if (movesLeft == 0) {
+            setWinner(undefined); // Tie
+            return;
         }
 
-        // Update winner and call aiTurn if ai is enabled
-        setWinner(result);
-        aiOn && aiTurn();
+        // Call aiTurn
+        aiTurn();
     }, [JSON.stringify(boardArr)]); // Only re-run the effect if board changes
 
     // Run the ai if it is switched back on and it is the ai's turn.
     useEffect(() => {
-        if (aiOn && !player) {
-            aiTurn();
-        }
+        aiTurn();
     }, [aiOn]);
 
     const tileClk = (tile: number) => {
@@ -164,9 +158,7 @@ export default function TicTacToe() {
             return;
         }
         if (aiOn) {
-            if (player) {
-                drawMove(tile);
-            }
+            player && drawMove(tile);
         } else {
             drawMove(tile);
         }
