@@ -13,61 +13,67 @@ const winCombos = [
     [6, 4, 2]
 ];
 
-function evaluateBoard(board: (boolean | null)[], depth: number) {
-    let result: (number | null) = null;
+function evaluateBoard(board: (boolean | null)[]) {
 
     for (let i = 0; i < winCombos.length; i++) {
+        if (board[winCombos[i][0]] == null) {
+            continue;
+        }
         if (board[winCombos[i][0]] == board[winCombos[i][1]] && board[winCombos[i][1]] == board[winCombos[i][2]]) {
-            if (board[winCombos[i][0]] == true) {
-                result = -10 + depth;
-            } else if (board[winCombos[i][0]] == false) {
-                result = 10 - depth;
-            }
+            return board[winCombos[i][0]]; // win
         }
     }
-    var movesLeft = 0;
+
+    let movesLeft = 0;
     for (let i = 0; i < board.length; i++) {
         board[i] == null && movesLeft++;
     }
-    if (movesLeft == 0 && result == null) {
-        result = 0;
+    if (movesLeft == 0) {
+        return undefined; // Tie
     }
-    return result;
+    return null; // No win or tie
 }
 
 function minimax(board: (boolean | null)[], depth: number, isMax: boolean) {
 
-    var score = evaluateBoard(board, depth);
-    if (score != null) {
-        return score;
+    let boardEvaluation: (boolean | null | undefined) = evaluateBoard(board);
+    if (boardEvaluation !== null) {
+        if (boardEvaluation == true) { // Player win
+            return (-10 + depth);
+        } else if (boardEvaluation == false) { // Ai win
+            return (10 - depth);
+        }
+        return 0; // Tie
     }
 
     if (isMax) {
-        var bestVal = -1000;
-        for (var i = 0; i < board.length; i++) {
-            if (board[i] == null) {
-                board[i] = false;
-                var value = minimax(board, depth + 1, !isMax);
-
-                if (value > bestVal) {
-                    bestVal = value;
-                }
-                board[i] = null;
+        let bestVal = -1000;
+        for (let i = 0; i < board.length; i++) {
+            if (board[i] != null) {
+                continue; // If spot is not empty
             }
+
+            board[i] = false;
+            let value = minimax(board, depth + 1, !isMax);
+            if (value > bestVal) {
+                bestVal = value;
+            }
+            board[i] = null;
         }
         return bestVal;
     } else {
-        var bestVal = 1000;
-        for (var i = 0; i < board.length; i++) {
-            if (board[i] == null) {
-                board[i] = true;
-                var value = minimax(board, depth + 1, !isMax);
-
-                if (value < bestVal) {
-                    bestVal = value;
-                }
-                board[i] = null;
+        let bestVal = 1000;
+        for (let i = 0; i < board.length; i++) {
+            if (board[i] != null) {
+                continue; // If spot is not empty
             }
+
+            board[i] = true;
+            let value = minimax(board, depth + 1, !isMax);
+            if (value < bestVal) {
+                bestVal = value;
+            }
+            board[i] = null;
         }
         return bestVal;
     }
@@ -78,16 +84,18 @@ function getBestMove(board: (boolean | null)[]) {
     let bestMove = 0;
 
     for (let i = 0; i < board.length; i++) {
-        if (board[i] == null) {
+        if (board[i] != null) {
+            continue; // If spot is not empty
+        }
 
-            board[i] = false;
-            let moveVal = minimax(board, 0, false);
-            board[i] = null;
+        // Place a move and get a score for the move
+        board[i] = false;
+        let moveVal = minimax(board, 0, false);
+        board[i] = null;
 
-            if (moveVal > bestVal) {
-                bestVal = moveVal;
-                bestMove = i;
-            }
+        if (moveVal > bestVal) {
+            bestVal = moveVal;
+            bestMove = i;
         }
     }
     return bestMove;
@@ -102,7 +110,7 @@ export default function TicTacToe() {
 
     // Draws the move on the board and changes the player
     function drawMove(moveIndex: number) {
-        var tempBoard = boardArr;
+        let tempBoard = boardArr;
         tempBoard[moveIndex] = player;
         setBoardArr(tempBoard);
         setPlayer(!player);
@@ -110,10 +118,10 @@ export default function TicTacToe() {
 
     // Draws the ai's move after 250 ms
     function aiTurn() {
-        if(player){ 
+        if (player) {
             return; // if it isn't the ai's turn
         }
-        if(!aiOn){
+        if (!aiOn) {
             return; // return if ai is off
         }
         setTimeout(() => {
@@ -123,27 +131,13 @@ export default function TicTacToe() {
 
     // Checks win or tie when the board is updated
     useEffect(() => {
-        for (let i = 0; i < winCombos.length; i++) {
-            // Runs through all the win combos and check if there is a win
-            if(boardArr[winCombos[i][0]] == null){
-                continue; // Skip iteration
-            }
-            if (boardArr[winCombos[i][0]] == boardArr[winCombos[i][1]] && boardArr[winCombos[i][1]] == boardArr[winCombos[i][2]]) {
-                setWinner(boardArr[winCombos[i][0]]); // true (player/X) or false (ai/O)
-                return;
-            }
-        }
 
-        var movesLeft = 0;
-        for (let i = 0; i < boardArr.length; i++) {
-            boardArr[i] == null && movesLeft++;
-        }
-        if (movesLeft == 0) {
-            setWinner(undefined); // Tie
+        let boardEvaluation: (boolean | null | undefined) = evaluateBoard(boardArr);
+        if (boardEvaluation !== null) {
+            setWinner(boardEvaluation);
             return;
-        }
+        } // Else continue game
 
-        // Call aiTurn
         aiTurn();
     }, [JSON.stringify(boardArr)]); // Only re-run the effect if board changes
 
@@ -165,7 +159,7 @@ export default function TicTacToe() {
     }
 
     const restartGame = () => {
-        var newBoard: (boolean | null)[] = [null, null, null, null, null, null, null, null, null];
+        let newBoard: (boolean | null)[] = [null, null, null, null, null, null, null, null, null];
         setBoardArr(newBoard);
         setWinner(null);
         setPlayer(true);
